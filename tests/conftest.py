@@ -9,7 +9,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from pyspark.sql import SparkSession

@@ -169,7 +169,7 @@ def write_partitioned(
     return count
 
 
-def main(config_path: str) -> int:  # noqa: PLR0915
+def main(config_path: str) -> int:
     cfg = load_config(config_path)
     configure_logging(level=cfg["logging"]["level"], fmt=cfg["logging"]["format"])
     log = get_logger(__name__, layer=LAYER, env=cfg["environment"])

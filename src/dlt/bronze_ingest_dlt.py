@@ -27,12 +27,12 @@ from src.schemas.telemetry import RAW_TELEMETRY_SCHEMA
     },
 )
 @dlt.expect("valid_event_id", "event_id IS NOT NULL")
-def bronze_raw_telemetry():  # noqa: ANN201
+def bronze_raw_telemetry():
     """Ingest raw telemetry from the landing path via Auto Loader."""
-    landing = spark.conf.get("landing_path")  # noqa: F821  — spark is global in DLT
+    landing = spark.conf.get("landing_path")  # `spark` is injected by DLT runtime
 
     return (
-        spark.readStream.format("cloudFiles")  # noqa: F821
+        spark.readStream.format("cloudFiles")
         .option("cloudFiles.format", "json")
         .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
         .option("cloudFiles.inferColumnTypes", "true")

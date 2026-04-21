@@ -66,7 +66,7 @@ def get_current_watermark(
             f"SELECT MAX(_source_ingest_ts) AS wm FROM {silver_table}"
         ).collect()
         return row[0]["wm"].isoformat() if row and row[0]["wm"] else None
-    except Exception:  # noqa: BLE001  — first run, table doesn't exist
+    except Exception:  # first run, table does not exist
         return None
 
 
@@ -230,7 +230,7 @@ def write_quarantine(
     return count
 
 
-def main(config_path: str) -> int:  # noqa: PLR0915
+def main(config_path: str) -> int:
     cfg = load_config(config_path)
     configure_logging(level=cfg["logging"]["level"], fmt=cfg["logging"]["format"])
     log = get_logger(__name__, layer=LAYER, env=cfg["environment"])

@@ -18,7 +18,7 @@ from pyspark.sql import functions as F
         "pipelines.autoOptimize.zOrderCols": "device_id",
     },
 )
-def gold_device_health_daily():  # noqa: ANN201
+def gold_device_health_daily():
     silver = dlt.read("silver_device_events")
     return (
         silver.groupBy("tenant_id", "device_id", "event_date")
@@ -45,15 +45,15 @@ def gold_device_health_daily():  # noqa: ANN201
     partition_cols=["event_date", "tenant_id"],
     table_properties={"quality": "gold"},
 )
-def gold_tenant_sla_hourly():  # noqa: ANN201
+def gold_tenant_sla_hourly():
     silver = dlt.read("silver_device_events")
 
     hourly_device = silver.groupBy(
         "tenant_id", "event_date", "event_hour", "device_id"
-    ).agg(F.avg("health_score").alias("hourly_health_score") if False else F.avg("signal_strength_dbm").alias("hourly_health_score"))
+    ).agg(F.avg("signal_strength_dbm").alias("hourly_health_score"))
 
-    # Note: health_score is computed in Silver in the non-DLT path. In DLT we can
-    # either add it here or pre-compute. Keeping it simple: use avg signal as proxy.
+    # Note: health_score is computed in Silver in the non-DLT path. In DLT we use
+    # avg signal as a proxy for simplicity.
 
     return (
         hourly_device.groupBy("tenant_id", "event_date", "event_hour")
@@ -77,7 +77,7 @@ def gold_tenant_sla_hourly():  # noqa: ANN201
     partition_cols=["event_date", "tenant_id"],
     table_properties={"quality": "gold"},
 )
-def gold_reboot_events():  # noqa: ANN201
+def gold_reboot_events():
     silver = dlt.read("silver_device_events")
     return (
         silver.filter(F.col("reboot_flag"))

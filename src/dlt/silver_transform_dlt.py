@@ -39,7 +39,7 @@ from pyspark.sql import functions as F
     "memory_pct_in_range",
     "memory_utilization_pct IS NULL OR memory_utilization_pct BETWEEN 0 AND 100",
 )
-def silver_device_events():  # noqa: ANN201
+def silver_device_events():
     """Silver device events with DQ expectations and enrichments."""
     bronze = dlt.read_stream("bronze_raw_telemetry")
 
@@ -72,7 +72,7 @@ def silver_device_events():  # noqa: ANN201
 
 
 @dlt.view(comment="Latest known attributes per device (used to drive SCD2 dim).")
-def silver_device_latest_attrs():  # noqa: ANN201
+def silver_device_latest_attrs():
     events = dlt.read("silver_device_events")
     window = F.row_number().over(
         F.window(F.col("event_timestamp"), "1 day").alias("_w")
