@@ -104,11 +104,9 @@ def test_silver_layer_cleans_and_quarantines(spark, integration_config):
     silver_count = spark.read.table(silver_table).count()
     assert silver_count > 0
 
-    # Quarantine should have at least some rows (generator injects dirty data)
     quarantine_count = spark.read.table(quarantine_table).count()
-    assert quarantine_count >= 0  # may be 0 depending on random seed
+    assert quarantine_count >= 0
 
-    # Silver rows must NOT have null device_id
     null_device = spark.read.table(silver_table).filter("device_id IS NULL").count()
     assert null_device == 0
 
@@ -130,7 +128,6 @@ def test_gold_layer_produces_all_tables(spark, integration_config):
         "network_performance_daily",
     ]:
         full = f"{gold_catalog}.{table_name}"
-        # Just verify it's queryable without exception
         spark.read.table(full).limit(1).collect()
 
 
@@ -143,7 +140,6 @@ def test_idempotency_second_bronze_run_is_safe(spark, integration_config):
 
     cfg = integration_config["cfg"]
     control = f"{cfg['catalog']['name']}.{cfg['catalog']['bronze_schema']}._batch_control"
-    # Should have at least 2 successful bronze runs by now
     successes = (
         spark.read.table(control)
         .filter("layer = 'bronze' AND status = 'SUCCESS'")

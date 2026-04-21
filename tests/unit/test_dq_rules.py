@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from chispa.dataframe_comparer import assert_df_equality  # noqa: F401
 
 from src.data_quality.rules import TELEMETRY_RULES, Severity, apply_rules
 
@@ -58,8 +57,8 @@ def test_all_valid_rows_pass(spark):
 def test_null_device_id_triggers_critical(spark):
     """Null device_id is CRITICAL — row is quarantined, counter increments."""
     rows = [
-        _make_row(event_id="e1"),  # valid
-        _make_row(event_id="e2", device_id=None),  # CRITICAL
+        _make_row(event_id="e1"),
+        _make_row(event_id="e2", device_id=None),
     ]
     df = spark.createDataFrame(rows)
     clean, quarantine, result = apply_rules(df, TELEMETRY_RULES)
@@ -73,9 +72,9 @@ def test_null_device_id_triggers_critical(spark):
 def test_out_of_range_signal_quarantines(spark):
     """signal_strength outside [-120, 0] is quarantined (ERROR severity)."""
     rows = [
-        _make_row(event_id="e1", signal_strength_dbm=-60),  # valid
-        _make_row(event_id="e2", signal_strength_dbm=50),  # invalid (positive)
-        _make_row(event_id="e3", signal_strength_dbm=-200),  # invalid (too low)
+        _make_row(event_id="e1", signal_strength_dbm=-60),
+        _make_row(event_id="e2", signal_strength_dbm=50),
+        _make_row(event_id="e3", signal_strength_dbm=-200),
     ]
     df = spark.createDataFrame(rows)
     _, _, result = apply_rules(df, TELEMETRY_RULES)
@@ -83,7 +82,6 @@ def test_out_of_range_signal_quarantines(spark):
     assert result.passed == 1
     assert result.quarantined == 2
     assert result.rule_violations["signal_strength_in_range"] == 2
-    # Critical count should be 0 — these are ERROR severity, not CRITICAL
     assert result.critical_failures == 0
 
 
@@ -116,7 +114,6 @@ def test_negative_throughput_quarantines(spark):
 
 def test_warn_severity_does_not_quarantine(spark):
     """WARN-level violations should NOT quarantine the row."""
-    # CPU > 100 is WARN, not ERROR/CRITICAL
     rows = [_make_row(event_id="e1", cpu_utilization_pct=150.0)]
     df = spark.createDataFrame(rows)
     clean, quarantine, result = apply_rules(df, TELEMETRY_RULES)

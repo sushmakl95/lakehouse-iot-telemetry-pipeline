@@ -1,12 +1,16 @@
 name: Deploy to Databricks
 
+# Manual dispatch only. Auto-trigger removed because this workflow requires
+# DATABRICKS_HOST and DATABRICKS_TOKEN repository secrets that are only
+# configured when you have a real Databricks workspace.
+#
+# To enable:
+#   1. Settings → Secrets and variables → Actions → New repository secret
+#   2. Add DATABRICKS_HOST (e.g., https://adb-xxx.cloud.databricks.com)
+#   3. Add DATABRICKS_TOKEN (personal access token from the workspace)
+#   4. Trigger via the Actions tab → "Deploy to Databricks" → "Run workflow"
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "notebooks/**"
-      - "databricks.yml"
   workflow_dispatch:
     inputs:
       target:
@@ -18,29 +22,29 @@ on:
 
 jobs:
   deploy:
-    name: Deploy (${{ github.event.inputs.target || 'dev' }})
+    name: Deploy (${{ github.event.inputs.target }})
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.target || 'dev' }}
+    environment: ${{ github.event.inputs.target }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: databricks/setup-cli@main
 
       - name: Validate bundle
-        run: databricks bundle validate --target ${{ github.event.inputs.target || 'dev' }}
+        run: databricks bundle validate --target ${{ github.event.inputs.target }}
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
       - name: Deploy bundle
-        run: databricks bundle deploy --target ${{ github.event.inputs.target || 'dev' }}
+        run: databricks bundle deploy --target ${{ github.event.inputs.target }}
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
       - name: Run smoke test job
         if: github.event.inputs.target != 'prod'
-        run: databricks bundle run smoke_test --target ${{ github.event.inputs.target || 'dev' }}
+        run: databricks bundle run smoke_test --target ${{ github.event.inputs.target }}
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
