@@ -1,0 +1,37 @@
+environment: prod
+
+spark:
+  app_name: iot-telemetry-pipeline-prod
+
+paths:
+  landing: s3://iot-telemetry-landing-prod/events
+  bronze: s3://iot-telemetry-lakehouse-prod/bronze
+  silver: s3://iot-telemetry-lakehouse-prod/silver
+  gold: s3://iot-telemetry-lakehouse-prod/gold
+  checkpoints: s3://iot-telemetry-lakehouse-prod/checkpoints
+  quarantine: s3://iot-telemetry-lakehouse-prod/quarantine
+
+catalog:
+  name: iot_lakehouse_prod
+  bronze_schema: bronze
+  silver_schema: silver
+  gold_schema: gold
+
+data_quality:
+  quarantine_enabled: true
+  fail_on_critical: true
+  thresholds:
+    null_device_id_pct: 0.001
+    invalid_signal_pct: 0.01
+    future_timestamp_pct: 0.0
+
+performance:
+  z_order_columns:
+    silver_device_events: [device_id, event_timestamp]
+    gold_device_health_daily: [device_id, event_date]
+  optimize_after_load: true
+  vacuum_retention_hours: 168
+
+logging:
+  level: INFO
+  format: json

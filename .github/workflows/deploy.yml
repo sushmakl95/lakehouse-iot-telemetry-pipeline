@@ -1,0 +1,46 @@
+name: Deploy to Databricks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "notebooks/**"
+      - "databricks.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, staging, prod]
+
+jobs:
+  deploy:
+    name: Deploy (${{ github.event.inputs.target || 'dev' }})
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate --target ${{ github.event.inputs.target || 'dev' }}
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+      - name: Deploy bundle
+        run: databricks bundle deploy --target ${{ github.event.inputs.target || 'dev' }}
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+      - name: Run smoke test job
+        if: github.event.inputs.target != 'prod'
+        run: databricks bundle run smoke_test --target ${{ github.event.inputs.target || 'dev' }}
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}

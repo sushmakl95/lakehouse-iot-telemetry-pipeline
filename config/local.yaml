@@ -1,0 +1,58 @@
+environment: local
+
+spark:
+  app_name: iot-telemetry-pipeline-local
+  master: "local[*]"
+  configs:
+    spark.sql.extensions: io.delta.sql.DeltaSparkSessionExtension
+    spark.sql.catalog.spark_catalog: org.apache.spark.sql.delta.catalog.DeltaCatalog
+    spark.sql.shuffle.partitions: "4"
+    spark.databricks.delta.schema.autoMerge.enabled: "true"
+    spark.databricks.delta.optimizeWrite.enabled: "true"
+    spark.databricks.delta.autoCompact.enabled: "true"
+    spark.driver.memory: 4g
+    spark.driver.bindAddress: 127.0.0.1
+
+paths:
+  landing: data/raw
+  bronze: data/bronze
+  silver: data/silver
+  gold: data/gold
+  checkpoints: data/checkpoints
+  quarantine: data/quarantine
+
+catalog:
+  name: local_catalog
+  bronze_schema: bronze
+  silver_schema: silver
+  gold_schema: gold
+
+tenants:
+  - tenant_id: tenant_a
+    name: "ISP Alpha"
+    sla_minutes: 30
+  - tenant_id: tenant_b
+    name: "ISP Beta"
+    sla_minutes: 60
+  - tenant_id: tenant_c
+    name: "ISP Gamma"
+    sla_minutes: 60
+
+data_quality:
+  quarantine_enabled: true
+  fail_on_critical: false
+  thresholds:
+    null_device_id_pct: 0.01
+    invalid_signal_pct: 0.05
+    future_timestamp_pct: 0.0
+
+performance:
+  z_order_columns:
+    silver_device_events: [device_id, event_timestamp]
+    gold_device_health_daily: [device_id, event_date]
+  optimize_after_load: true
+  vacuum_retention_hours: 168
+
+logging:
+  level: INFO
+  format: json

@@ -1,0 +1,83 @@
+resources:
+  jobs:
+    iot_medallion_pipeline:
+      name: "iot-medallion-pipeline-${bundle.target}"
+      tags:
+        project: lakehouse-iot-telemetry
+        env: ${bundle.target}
+        owner: data-platform
+      schedule:
+        quartz_cron_expression: "0 0 */1 * * ?"
+        timezone_id: UTC
+        pause_status: ${bundle.target == "prod" ? "UNPAUSED" : "PAUSED"}
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure: [data-platform-oncall@example.com]
+
+      job_clusters:
+        - job_cluster_key: main
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 4
+            autoscale:
+              min_workers: 2
+              max_workers: 8
+            aws_attributes:
+              availability: SPOT_WITH_FALLBACK
+              first_on_demand: 1
+              spot_bid_price_percent: 100
+            runtime_engine: PHOTON
+            spark_conf:
+              "spark.databricks.delta.optimizeWrite.enabled": "true"
+              "spark.databricks.delta.autoCompact.enabled": "true"
+              "spark.sql.shuffle.partitions": "auto"
+            custom_tags:
+              project: lakehouse-iot-telemetry
+
+      tasks:
+        - task_key: bronze_ingest
+          job_cluster_key: main
+          python_wheel_task:
+            package_name: lakehouse_iot_telemetry_pipeline
+            entry_point: bronze_ingest
+            named_parameters:
+              config: "/Workspace/config/${bundle.target}.yaml"
+
+        - task_key: silver_transform
+          depends_on:
+            - task_key: bronze_ingest
+          job_cluster_key: main
+          python_wheel_task:
+            package_name: lakehouse_iot_telemetry_pipeline
+            entry_point: silver_transform
+            named_parameters:
+              config: "/Workspace/config/${bundle.target}.yaml"
+
+        - task_key: gold_aggregate
+          depends_on:
+            - task_key: silver_transform
+          job_cluster_key: main
+          python_wheel_task:
+            package_name: lakehouse_iot_telemetry_pipeline
+            entry_point: gold_aggregate
+            named_parameters:
+              config: "/Workspace/config/${bundle.target}.yaml"
+
+        - task_key: optimize_tables
+          depends_on:
+            - task_key: gold_aggregate
+          job_cluster_key: main
+          notebook_task:
+            notebook_path: ../notebooks/04_optimize_and_vacuum.py
+
+    smoke_test:
+      name: "smoke-test-${bundle.target}"
+      tasks:
+        - task_key: run_smoke_test
+          notebook_task:
+            notebook_path: ../notebooks/99_smoke_test.py
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 1

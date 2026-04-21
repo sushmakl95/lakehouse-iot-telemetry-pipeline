@@ -1,0 +1,52 @@
+bundle:
+  name: lakehouse-iot-telemetry-pipeline
+
+variables:
+  catalog:
+    description: Unity Catalog name
+    default: iot_lakehouse
+  bronze_schema:
+    default: bronze
+  silver_schema:
+    default: silver
+  gold_schema:
+    default: gold
+  landing_path:
+    description: S3 path for raw event landing
+    default: s3://iot-telemetry-landing-dev/events
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-dev.cloud.databricks.com
+    variables:
+      catalog: iot_lakehouse_dev
+      landing_path: s3://iot-telemetry-landing-dev/events
+
+  staging:
+    mode: production
+    workspace:
+      host: https://adb-staging.cloud.databricks.com
+      root_path: /Shared/bundles/${bundle.name}
+    variables:
+      catalog: iot_lakehouse_staging
+      landing_path: s3://iot-telemetry-landing-staging/events
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-prod.cloud.databricks.com
+      root_path: /Shared/bundles/${bundle.name}
+    variables:
+      catalog: iot_lakehouse_prod
+      landing_path: s3://iot-telemetry-landing-prod/events
+    permissions:
+      - level: CAN_VIEW
+        group_name: data-consumers
+      - level: CAN_MANAGE
+        group_name: data-platform-admins

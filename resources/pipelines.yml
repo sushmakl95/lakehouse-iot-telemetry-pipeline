@@ -1,0 +1,37 @@
+resources:
+  pipelines:
+    iot_dlt_pipeline:
+      name: "iot-dlt-pipeline-${bundle.target}"
+      catalog: ${var.catalog}
+      target: dlt_outputs
+      development: ${bundle.target == "dev" ? true : false}
+      continuous: false
+      photon: true
+      channel: CURRENT
+      edition: ADVANCED
+
+      libraries:
+        - file:
+            path: ../src/dlt/bronze_ingest_dlt.py
+        - file:
+            path: ../src/dlt/silver_transform_dlt.py
+        - file:
+            path: ../src/dlt/gold_aggregate_dlt.py
+
+      configuration:
+        pipelines.autoOptimize.managed: "true"
+        pipelines.reset.allowed: "false"
+        landing_path: ${var.landing_path}
+        bronze_schema: ${var.bronze_schema}
+        silver_schema: ${var.silver_schema}
+        gold_schema: ${var.gold_schema}
+
+      clusters:
+        - label: default
+          node_type_id: "i3.xlarge"
+          autoscale:
+            min_workers: 1
+            max_workers: 4
+            mode: ENHANCED
+          aws_attributes:
+            availability: SPOT_WITH_FALLBACK
