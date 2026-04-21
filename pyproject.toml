@@ -63,14 +63,29 @@ select = [
     "B",    # flake8-bugbear
     "C4",   # flake8-comprehensions
     "UP",   # pyupgrade
-    "N",    # pep8-naming
     "S",    # bandit security
     "RUF",  # ruff-specific
 ]
-ignore = ["S101", "E501"]  # allow assert in tests, long lines in SQL
+# PySpark idioms conflict with some default rules — ignore intentionally.
+ignore = [
+    "S101",    # allow assert (used in tests)
+    "E501",    # allow long lines (mostly in SQL strings and docstrings)
+    "N812",    # `from pyspark.sql import functions as F` is standard PySpark convention
+    "S608",    # SQL "injection" warnings on f-string table names — these are identifiers, not user input
+    "RUF022",  # don't force `__all__` sorting (grouping by semantics is more readable)
+    "UP042",   # StrEnum requires Python 3.11+ but mixing with Enum is widely used for compat
+    "B008",    # allow function calls in argument defaults (Click/FastAPI style)
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S"]
+"tests/*" = ["S", "RUF059"]      # tests may have tuple-unpacking with unused elements
+"src/dlt/*" = ["F821", "I001"]   # dlt decorators access global `spark`; imports are DLT-specific
+"scripts/*" = ["S603", "S607"]   # scripts legitimately invoke subprocesses
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
 [tool.mypy]
 python_version = "3.11"
@@ -78,6 +93,8 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+# Don't type-check DLT files — `dlt` is only available on Databricks runtime
+exclude = ["src/dlt/", "tests/", "notebooks/", "data/generator/"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
