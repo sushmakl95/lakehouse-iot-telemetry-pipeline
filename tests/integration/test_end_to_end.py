@@ -9,7 +9,6 @@ from the fast unit tests in CI.
 
 from __future__ import annotations
 
-
 import pytest
 import yaml
 

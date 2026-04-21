@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from pathlib import Path
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from pyspark.sql import SparkSession
