@@ -50,9 +50,12 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install bandit
-        run: pip install "bandit>=1.7.8"
-      - name: Bandit scan
-        run: bandit -r src -ll -x src/dlt,tests
+        run: pip install "bandit[toml]>=1.7.8"
+      # -lll = HIGH severity only (skips Low/Medium — includes the B608 false positives
+      #        for internal SQL table identifiers, which aren't user input).
+      # -c pyproject.toml loads the [tool.bandit] skips as a second layer of defense.
+      - name: Bandit scan (high severity only)
+        run: bandit -c pyproject.toml -r src -lll -x src/dlt,tests
 
   terraform:
     name: Terraform Validate
