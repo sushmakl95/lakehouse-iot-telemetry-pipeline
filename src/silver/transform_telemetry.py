@@ -200,16 +200,29 @@ def upsert_silver(spark: SparkSession, df: DataFrame, target_table: str) -> int:
     return count
 
 
-def optimize_silver(spark: SparkSession, table: str, z_order_cols: list[str]) -> None:
-    """OPTIMIZE + Z-ORDER to compact small files and co-locate on hot columns.
+def optimize_silver(
+    spark: SparkSession, table: str, z_order_cols: list[str], *, liquid: bool = True
+) -> None:
+    """OPTIMIZE to compact small files and co-locate on hot columns.
 
-    Why Z-Order on device_id + event_timestamp?
-    - device_id is the highest-cardinality filter predicate in downstream queries
+    Why cluster on tenant_id + device_id + event_timestamp?
+    - tenant_id is the primary partitioning in downstream multi-tenant queries
+    - device_id is the highest-cardinality filter predicate
     - event_timestamp drives time-window queries
-    - Co-locating these in the same files reduces data scanned for point queries
+
+    Prefer **liquid clustering** (Delta 3.2+) over Z-ORDER for new tables:
+    - Incremental OPTIMIZE — only re-clusters changed partitions
+    - Clustering columns are evolvable (ALTER TABLE ... CLUSTER BY) without a rewrite
+    - Better small-file selectivity at scale
+
+    Set liquid=False to fall back to Z-ORDER for tables still on Delta < 3.2.
     """
     cols = ", ".join(z_order_cols)
-    spark.sql(f"OPTIMIZE {table} ZORDER BY ({cols})")
+    if liquid:
+        spark.sql(f"ALTER TABLE {table} CLUSTER BY ({cols})")
+        spark.sql(f"OPTIMIZE {table}")
+    else:
+        spark.sql(f"OPTIMIZE {table} ZORDER BY ({cols})")
 
 
 def write_quarantine(

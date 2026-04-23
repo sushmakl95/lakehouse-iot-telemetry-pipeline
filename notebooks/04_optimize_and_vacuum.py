@@ -36,19 +36,23 @@ vacuum_retention = int(dbutils.widgets.get("vacuum_retention_hours"))
 # COMMAND ----------
 
 bronze_table = f"{catalog}.{bronze_schema}.raw_telemetry"
-print(f"Optimizing {bronze_table}...")
-spark.sql(f"OPTIMIZE {bronze_table} ZORDER BY (device_id, event_timestamp)")
+print(f"Optimizing {bronze_table} (liquid clustering)...")
+spark.sql(f"ALTER TABLE {bronze_table} CLUSTER BY (tenant_id, device_id, event_timestamp)")
+spark.sql(f"OPTIMIZE {bronze_table}")
 spark.sql(f"VACUUM {bronze_table} RETAIN {vacuum_retention} HOURS")
 
 # COMMAND ----------
 
-# MAGIC %md ## 2. Silver: OPTIMIZE + VACUUM
+# MAGIC %md ## 2. Silver: OPTIMIZE + VACUUM with liquid clustering
 
 # COMMAND ----------
 
 silver_table = f"{catalog}.{silver_schema}.device_events"
-print(f"Optimizing {silver_table}...")
-spark.sql(f"OPTIMIZE {silver_table} ZORDER BY (device_id, event_timestamp)")
+print(f"Optimizing {silver_table} (liquid clustering)...")
+# Liquid clustering (Delta 3.2+): evolvable clustering keys, incremental OPTIMIZE,
+# supersedes Z-ORDER for new tables. Safe to re-run — ALTER is idempotent.
+spark.sql(f"ALTER TABLE {silver_table} CLUSTER BY (tenant_id, device_id, event_timestamp)")
+spark.sql(f"OPTIMIZE {silver_table}")
 spark.sql(f"VACUUM {silver_table} RETAIN {vacuum_retention} HOURS")
 
 # COMMAND ----------
